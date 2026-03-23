@@ -3,10 +3,8 @@ package com.kathir.Inventory.Management.System.service;
 import com.kathir.Inventory.Management.System.entity.ChangeType;
 import com.kathir.Inventory.Management.System.entity.Products;
 import com.kathir.Inventory.Management.System.entity.PurchaseOrder;
-import com.kathir.Inventory.Management.System.entity.StockLog;
 import com.kathir.Inventory.Management.System.exception.ResourceNotFoundException;
 import com.kathir.Inventory.Management.System.repository.PurchaseOrderRepository;
-import com.kathir.Inventory.Management.System.repository.StockLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,30 +18,24 @@ public class PurchaseOrderService {
 
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final ProductService productService;
-    private final StockLogRepository stockLogRepository;
+    private final StockLogService stockLogService;
 
     @Transactional
     public PurchaseOrder saveOrder(PurchaseOrder order) {
         // Save the purchase order first
         PurchaseOrder savedOrder = purchaseOrderRepository.save(order);
-        
+
         // If status is RECEIVED, increase product quantity
         if ("RECEIVED".equals(order.getStatus())) {
             Products product = order.getProduct();
             product.setQuantity(product.getQuantity() + order.getQuantity());
             product.setLastUpdated(LocalDateTime.now());
             productService.saveProduct(product);
-            
+
             // Create stock log entry
-            StockLog stockLog = StockLog.builder()
-                    .productId(product.getId())
-                    .changeType(ChangeType.ADD)
-                    .quantityChanged(order.getQuantity())
-                    .changeDate(LocalDateTime.now())
-                    .build();
-            stockLogRepository.save(stockLog);
+            stockLogService.createLog(product.getId(), ChangeType.ADD, order.getQuantity());
         }
-        
+
         return savedOrder;
     }
 
@@ -53,9 +45,9 @@ public class PurchaseOrderService {
         PurchaseOrder existingOrder = findById(updatedOrder.getId());
         String oldStatus = existingOrder.getStatus();
         String newStatus = updatedOrder.getStatus();
-        
+
         Products product = updatedOrder.getProduct();
-        
+
         // Handle status transitions
         if (!oldStatus.equals(newStatus)) {
             // Case 1: Changed FROM RECEIVED to something else (decrease stock)
@@ -63,31 +55,19 @@ public class PurchaseOrderService {
                 product.setQuantity(product.getQuantity() - updatedOrder.getQuantity());
                 product.setLastUpdated(LocalDateTime.now());
                 productService.saveProduct(product);
-                
-                StockLog stockLog = StockLog.builder()
-                        .productId(product.getId())
-                        .changeType(ChangeType.REMOVE)
-                        .quantityChanged(updatedOrder.getQuantity())
-                        .changeDate(LocalDateTime.now())
-                        .build();
-                stockLogRepository.save(stockLog);
+
+                stockLogService.createLog(product.getId(), ChangeType.REMOVE, updatedOrder.getQuantity());
             }
             // Case 2: Changed TO RECEIVED from something else (increase stock)
             else if (!"RECEIVED".equals(oldStatus) && "RECEIVED".equals(newStatus)) {
                 product.setQuantity(product.getQuantity() + updatedOrder.getQuantity());
                 product.setLastUpdated(LocalDateTime.now());
                 productService.saveProduct(product);
-                
-                StockLog stockLog = StockLog.builder()
-                        .productId(product.getId())
-                        .changeType(ChangeType.ADD)
-                        .quantityChanged(updatedOrder.getQuantity())
-                        .changeDate(LocalDateTime.now())
-                        .build();
-                stockLogRepository.save(stockLog);
+
+                stockLogService.createLog(product.getId(), ChangeType.ADD, updatedOrder.getQuantity());
             }
         }
-        
+
         return purchaseOrderRepository.save(updatedOrder);
     }
 
@@ -103,24 +83,18 @@ public class PurchaseOrderService {
     @Transactional
     public void deleteOrder(Long id) {
         PurchaseOrder order = findById(id);
-        
+
         // If order was RECEIVED, decrease product quantity when deleting
         if ("RECEIVED".equals(order.getStatus())) {
             Products product = order.getProduct();
             product.setQuantity(product.getQuantity() - order.getQuantity());
             product.setLastUpdated(LocalDateTime.now());
             productService.saveProduct(product);
-            
+
             // Create stock log entry
-            StockLog stockLog = StockLog.builder()
-                    .productId(product.getId())
-                    .changeType(ChangeType.REMOVE)
-                    .quantityChanged(order.getQuantity())
-                    .changeDate(LocalDateTime.now())
-                    .build();
-            stockLogRepository.save(stockLog);
+            stockLogService.createLog(product.getId(), ChangeType.REMOVE, order.getQuantity());
         }
-        
+
         purchaseOrderRepository.deleteById(id);
     }
 }

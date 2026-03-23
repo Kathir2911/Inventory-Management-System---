@@ -53,7 +53,7 @@ public class ReportService {
 
         CSVWriter writer = new CSVWriter(response.getWriter());
 
-        writer.writeNext(new String[]{"Product ID", "Change Type", "Quantity", "Date"});
+        writer.writeNext(new String[]{"Product ID", "Change Type", "Quantity", "Performed By", "Date"});
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
@@ -62,6 +62,7 @@ public class ReportService {
                     log.getProductId().toString(),
                     log.getChangeType().name(),
                     String.valueOf(log.getQuantityChanged()),
+                    log.getPerformedBy() != null ? log.getPerformedBy() : "System",
                     log.getChangeDate().format(formatter)
             });
         }

@@ -28,6 +28,7 @@
                                     <th>Product ID</th>
                                     <th>Change Type</th>
                                     <th>Quantity Changed</th>
+                                    <th>Performed By</th>
                                     <th>Date &amp; Time</th>
                                 </tr>
                             </thead>
@@ -42,6 +43,7 @@
                                                 class="fas fa-arrow-down"></i> REMOVE</span>
                                     </td>
                                     <td th:text="${log.quantityChanged}"></td>
+                                    <td th:text="${log.performedBy != null ? log.performedBy : 'System'}"></td>
                                     <td th:text="${#temporals.format(log.changeDate, 'yyyy-MM-dd HH:mm:ss')}"></td>
                                 </tr>
                             </tbody>
