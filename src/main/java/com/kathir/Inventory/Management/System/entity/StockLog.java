@@ -1,4 +1,5 @@
 package com.kathir.Inventory.Management.System.entity;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -27,6 +28,9 @@ public class StockLog {
     @NotNull(message = "Quantity changed is required")
     @Positive(message = "Quantity must be greater than zero")
     private Integer quantityChanged;
+
+    @NotBlank(message = "Performed by is required")
+    private String performedBy;
 
     @NotNull(message = "Change date is required")
     private LocalDateTime changeDate;
